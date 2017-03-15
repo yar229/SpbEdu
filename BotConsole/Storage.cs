@@ -51,7 +51,7 @@ namespace BotConsole
             {
                 Login = login,
                 Password = password,
-                ChatIds = new List<long>{chatid}
+                ChatIds = new List<long> {chatid}
             };
             var connector = ConnectorCache.GetConnector(login, password);
             if (connector != null)
@@ -66,15 +66,64 @@ namespace BotConsole
 
 
         public static readonly Dictionary<string, Data> Datas = new Dictionary<string, Data>();
-    }
 
-    public class Data
-    {
-        public string Login { get; set; }
-        public string Password { get; set; }
+        public static void Clear(DateTime nowDate)
+        {
+            foreach (var value in Datas.Values)
+            {
+                foreach (var student in value.Students)
+                {
+                    student.Grads.RemoveAll(g => g.Date >= nowDate);
+                }
+            }
+        }
 
-        public List<long> ChatIds { get; set; }
+        //    public static object Avg(long chatid)
+        //    {
+        //        var z = Datas.Values
+        //            .Where(d => d.ChatIds.Contains(chatid))
+        //            .SelectMany(d => d.Students)
 
-        public List<Student> Students;
+        //            .Select(s => new
+        //            {
+        //                s.LastName,
+        //                s.FirstName,
+        //                s.SecondName,
+        //                AvrGrades = s.Grads
+        //                    .GroupBy(g => g.Subject, g =>
+        //                    {
+
+        //                        int res;
+        //                        int.TryParse(g.Number, out res);
+        //                        return res;
+        //                    })
+        //                    .Select(d => new AvgGrade
+        //                    {
+        //                        Name = s.LastName,
+        //                        Subject = d.Key,
+        //                        Grade = d.Where(num => num > 0).Average()
+        //                    })
+        //            });
+
+        //        return null;
+        //    }
+        //}
+
+        //public class AvgGrade
+        //{
+        //    public string Name { get; set; }
+        //    public string Subject { get; set; }
+        //    public double Grade { get; set; }
+        //}
+
+        public class Data
+        {
+            public string Login { get; set; }
+            public string Password { get; set; }
+
+            public List<long> ChatIds { get; set; }
+
+            public List<Student> Students;
+        }
     }
 }

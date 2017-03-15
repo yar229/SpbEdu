@@ -41,66 +41,80 @@ namespace BotConsole
             while (true)
             {
                 char key = Console.ReadKey().KeyChar;
-                if (key == 'p')
+                switch (key)
                 {
-                    fire(timer, null);
+                    case 'p': fire(timer, null);
+                        break;
+                    case 'c':
+                        Storage.Clear(DateTime.Now.Date);
+                        break;
+
                 }
+
             }
 
         }
 
         private static async void Process(Telegram.Bot.TelegramBotClient bot)
         {
-            foreach (var data in Storage.Datas.Values)
+            try
             {
-                var connector = ConnectorCache.GetConnector(data.Login, data.Password);
-                if (null == connector) continue;
 
-                var sts =  connector.StudentListAsync().Result;
-                foreach (var st in sts)
+                foreach (var data in Storage.Datas.Values)
                 {
-                    var grads = connector.GradListAsync(st.UID).Result;
-                    //grads.Add(new Grad { Date = DateTime.Now, Subject = "Английский язык", Number = "10", Title = "zРабота на уроке" });
-                    st.Grads = grads;
-                }
+                    var connector = ConnectorCache.GetConnector(data.Login, data.Password);
+                    if (null == connector) continue;
 
-
-                foreach (var st in sts)
-                {
-                    bool doSend = false;
-                    var msg = new StringBuilder();
-                    msg.Append($"\r\n 👤{st.LastName} {st.FirstName} {st.SecondName}");
-
-                    foreach (var grad in st.Grads)
+                    var sts =  connector.StudentListAsync().Result;
+                    foreach (var st in sts)
                     {
-                        var markExists = data.Students?
-                                             .FirstOrDefault(s => s.UID == st.UID)?
-                                             .Grads?
-                                             .Any(gr =>
-                                                 gr.Date == grad.Date && gr.Number == grad.Number &&
-                                                 gr.Subject == grad.Subject && gr.Title == grad.Title) ?? false;
+                        var grads = connector.GradListAsync(st.UID).Result;
+                        //grads.Add(new Grad { Date = DateTime.Now, Subject = "Английский язык", Number = "10", Title = "zРабота на уроке" });
+                        st.Grads = grads;
+                    }
 
-                        if (!markExists)
+
+                    foreach (var st in sts)
+                    {
+                        bool doSend = false;
+                        var msg = new StringBuilder();
+                        msg.Append($"\r\n 👤{st.LastName} {st.FirstName} {st.SecondName}");
+
+                        foreach (var grad in st.Grads)
                         {
-                            doSend = true;
-                            msg.Append($"\r\n {grad.Date:dd MMM yyyy}, {grad.Subject} • <b>{grad.Number}</b> •");
-                            if (!string.IsNullOrWhiteSpace(grad.Title))
-                                msg.Append($" {grad.Title}");
+                            var markExists = data.Students?
+                                                 .FirstOrDefault(s => s.UID == st.UID)?
+                                                 .Grads?
+                                                 .Any(gr =>
+                                                     gr.Date == grad.Date && gr.Number == grad.Number &&
+                                                     gr.Subject == grad.Subject && gr.Title == grad.Title) ?? false;
+
+                            if (!markExists)
+                            {
+                                doSend = true;
+                                msg.Append($"\r\n {grad.Date:dd MMM yyyy}, {grad.Subject} • <b>{grad.Number}</b> •");
+                                if (!string.IsNullOrWhiteSpace(grad.Title))
+                                    msg.Append($" {grad.Title}");
+                            }
+                        }
+
+                        if (doSend)
+                        {
+                            var splitted = ChunksUpto(msg.ToString(), 4000).ToList();
+                            foreach (var chatid in data.ChatIds)
+                                foreach (var chunk in splitted)
+                                    await bot.SendTextMessageAsync(chatid, chunk, parseMode: ParseMode.Html);
                         }
                     }
 
-                    if (doSend)
-                    {
-                        var splitted = ChunksUpto(msg.ToString(), 4000).ToList();
-                        foreach (var chatid in data.ChatIds)
-                            foreach (var chunk in splitted)
-                                await bot.SendTextMessageAsync(chatid, chunk, parseMode: ParseMode.Html);
-                    }
+                    data.Students = sts;
                 }
-
-                data.Students = sts;
+                Storage.Save();
             }
-            Storage.Save();
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
         }
 
         static IEnumerable<string> ChunksUpto(string str, int maxChunkSize)
@@ -111,21 +125,35 @@ namespace BotConsole
 
         private static void BotOnOnMessage(object sender, MessageEventArgs messageEventArgs)
         {
-            var bot = sender as Telegram.Bot.TelegramBotClient;
-            if (bot == null) return;
-
-            var chatid = messageEventArgs.Message.Chat.Id;
-            var text = messageEventArgs.Message.Text;
-
-            var splitted = text.Split(' ');
-            if (3 == splitted.Length && "/register" == splitted[0])
+            try
             {
-                string login = splitted[1];
-                string password = splitted[2];
+                var bot = sender as Telegram.Bot.TelegramBotClient;
+                if (bot == null) return;
 
-                bool registered = Storage.Register(login, password, chatid);
-                bot.SendTextMessageAsync(chatid, (registered ? "" : "Not ") +  "Registered");
+                var chatid = messageEventArgs.Message.Chat.Id;
+                var text = messageEventArgs.Message.Text;
+
+                var splitted = text.Split(' ');
+                if (3 == splitted.Length && "/register" == splitted[0])
+                {
+                    string login = splitted[1];
+                    string password = splitted[2];
+
+                    bool registered = Storage.Register(login, password, chatid);
+                    bot.SendTextMessageAsync(chatid, (registered ? "" : "Not ") +  "Registered");
+                }
+
+                //if (1 == splitted.Length && "/avg" == splitted[0])
+                //{
+                //    var z = Storage.Avg(chatid);
+                //}
+
             }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+
         }
     }
 }
