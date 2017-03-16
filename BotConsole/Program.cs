@@ -7,6 +7,7 @@ using System.Timers;
 using BotConsole.Properties;
 using Telegram.Bot.Args;
 using Telegram.Bot.Types.Enums;
+using YaR.SpbEdu.Requests;
 
 
 namespace BotConsole
@@ -72,8 +73,21 @@ namespace BotConsole
                     foreach (var st in sts)
                     {
                         Logger.Info($"Quering Student ID: {st.UID}");
-                        var grads = connector.GradListAsync(st.UID).Result;
-                        //grads.Add(new Grad { Date = DateTime.Now, Subject = "Английский язык", Number = "10", Title = "zРабота на уроке" });
+                        var grads = connector.GradListAsync(st.UID).Result.ToList();
+                        //grads.Add(new Grad
+                        //{
+                        //    Date = DateTime.Now.Date,
+                        //    Subject = "Изобразительное искусство",
+                        //    Marks = new List<Mark>
+                        //{
+                        //    new Mark(){Number = "+", Title = "Работа на уроке"},
+                        //    new Mark(){Number = "10", Title = "ДЗ"},
+                        //    new Mark(){Number = "12", Title = "ДЗ"},
+                        //    new Mark(){Number = "13", Title = "ДЗ1"},
+                        //    new Mark(){Number = "14", Title = "ДЗ2"}
+                        //}
+                        //});
+
                         st.Grads = grads;
                     }
 
@@ -83,7 +97,7 @@ namespace BotConsole
                         {
                             Logger.Info($"Processing Student ID: {st.UID}");
                             int cntNewMarks = 0;
-                            var msg = new StringBuilder();
+                            var msg = new SplitString();
                             msg.Append($"\r\n 👤{st.LastName} {st.FirstName} {st.SecondName}");
 
                             foreach (var grad in st.Grads)
@@ -91,26 +105,35 @@ namespace BotConsole
                                 var markExists = data.Students?
                                                      .FirstOrDefault(s => s.UID == st.UID)?
                                                      .Grads?
-                                                     .Any(gr =>
-                                                         gr.Date == grad.Date && gr.Number == grad.Number &&
-                                                         gr.Subject == grad.Subject && gr.Title == grad.Title) ?? false;
+                                                     .FirstOrDefault(gr =>
+                                                         gr.Date == grad.Date && 
+                                                         gr.Subject == grad.Subject);
 
-                                if (!markExists)
+                                if (null == markExists || !grad.Marks.SequenceEqual(markExists.Marks))
                                 {
                                     cntNewMarks++;
-                                    msg.Append($"\r\n {grad.Date:dd MMM yyyy}, {grad.Subject} • <b>{grad.Number}</b> •");
-                                    if (!string.IsNullOrWhiteSpace(grad.Title))
-                                        msg.Append($" {grad.Title}");
+                                    msg.Append($"\r\n {grad.Date:ddd, dd MMM yyyy}, {grad.Subject}");
+
+                                    if (null != markExists)
+                                        foreach (var mark in markExists.Marks)
+                                        {
+                                            msg.Append($"\r\n  <code>   x  </code>• <b>{mark.Number}</b> • {mark.Title}");
+                                        }
+
+
+                                    foreach (var mark in grad.Marks)
+                                    {
+                                        msg.Append($"\r\n  <code>  new </code>• <b>{mark.Number}</b> • {mark.Title}");
+                                    }
                                 }
                             }
                             Logger.Info($"New grades found: {cntNewMarks}");
 
                             if (cntNewMarks > 0)
                             {
-                                var splitted = ChunksUpto(msg.ToString(), 4000).ToList();
                                 foreach (var chatid in data.ChatIds)
-                                foreach (var chunk in splitted)
-                                    await bot.SendTextMessageAsync(chatid, chunk, parseMode: ParseMode.Html);
+                                foreach (var chunk in msg.List)
+                                    await bot.SendTextMessageAsync(chatid, chunk.ToString(), parseMode: ParseMode.Html);
                             }
                         }
 
@@ -123,6 +146,24 @@ namespace BotConsole
             {
                 Logger.Error("Process!", e);
             }
+        }
+
+        class SplitString
+        {
+            public List<StringBuilder> List = new List<StringBuilder>{new StringBuilder(string.Empty)};
+
+            public void Append(string s)
+            {
+                var last = List.Last();
+                if (last.Length + s.Length > MaxLen)
+                    List.Add(new StringBuilder(s));
+                else
+                {
+                    last.Append(s);
+                }
+            }
+
+            public int MaxLen { get; set; } = 4000;
         }
 
         static IEnumerable<string> ChunksUpto(string str, int maxChunkSize)
@@ -162,7 +203,7 @@ namespace BotConsole
                         msg.Append($"\r\n 👤{avgGrade.Student.LastName} {avgGrade.Student.FirstName} {avgGrade.Student.SecondName}");
                         foreach (var grad in avgGrade.SubjectAverageGrades)
                         {
-                            msg.Append($"\r\n {grad.Subject} • <b>{grad.Number}</b> •");
+                            //msg.Append($"\r\n {grad.Subject} • <b>{grad.Marks.Average(m => m.Number)}</b> •");
                         }
                         bot.SendTextMessageAsync(chatid, msg.ToString(), parseMode: ParseMode.Html);
                     }

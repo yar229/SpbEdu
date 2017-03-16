@@ -6,7 +6,7 @@ using HtmlAgilityPack;
 
 namespace YaR.SpbEdu.Requests
 {
-    class StudentGradRequest : BaseRequest<List<Grad>>
+    class StudentGradRequest : BaseRequest<IEnumerable<Grad>>
     {
         private readonly long _studentId;
 
@@ -23,7 +23,7 @@ namespace YaR.SpbEdu.Requests
 
         public override string RelationalUri => $"/dnevnik/lessons/index/student/{_studentId}";
 
-        protected override RequestResponse<List<Grad>> DeserializeMessage(string htmlstring)
+        protected override RequestResponse<IEnumerable<Grad>> DeserializeMessage(string htmlstring)
         {
             HtmlDocument html = new HtmlDocument();
             html.LoadHtml(htmlstring);
@@ -90,35 +90,76 @@ namespace YaR.SpbEdu.Requests
 
             try
             {
-                var marks = tablenodes
-                    .FindFirst("tbody").ChildNodes
-                    .Where(node => node.Name == "tr")
-                    .SelectMany(node => node.ChildNodes.Where(cn => cn.Name == "td"))
-                    .SelectMany((node, index) =>
-                    {
-                        var cns = node.ChildNodes
-                            .Where(icn => icn.Name == "span") // оценка
-                            .Union(node.ChildNodes // присутствовал
-                                    .Where(icn => icn.Name == "i")
-                                    .Select(cn => cn.ChildNodes.FirstOrDefault(icn => icn.Name == "span")))
-                            .Union(node.ChildNodes  // отсутствовал
-                                    .Where(icn => icn.Name == "i" && icn.Attributes.Any(a => a.Name == "class" && a.Value == "skip")))
-                            .Select(gr => gr == null
-                                            ? null
-                                            : new Grad
-                                            {
-                                                Number = gr.InnerText,
-                                                Title = gr.Attributes.FirstOrDefault(a => a.Name == "title")?.Value ?? String.Empty,
-                                                Date = dates[index % dates.Count],
-                                                Subject = subjects[index / dates.Count].Name
-                                            });
-                        
-                        return cns;
-                    })
-                    .Where(n => n != null)
-                    .ToList();
+                var zxvc = dates
+                    .Join(subjects, time => 1, arg => 1, (time, sbj) => new {time, sbj});
 
-            return new RequestResponse<List<Grad>>
+                var marks = subjects
+                    .Join(dates, arg => 1, time => 1, (sbj, time) => new { time, sbj })
+
+                    .Select((d, dateIdx) => new Grad
+                    {
+                        Date = d.time,
+                        Subject = d.sbj.Name,
+                        Marks = tablenodes
+                            .FindFirst("tbody").ChildNodes
+                            .Where(node => node.Name == "tr")
+                            .SelectMany(node => node.ChildNodes.Where(cn => cn.Name == "td"))
+                            .Where((df, nodeIdx) => nodeIdx == dateIdx)
+                            .SelectMany(node =>
+                                node.ChildNodes
+                                    .Where(icn => icn.Name == "span") // оценка
+                                    .Union(node.ChildNodes // присутствовал
+                                        .Where(icn => icn.Name == "i")
+                                        .Select(cn => cn.ChildNodes.FirstOrDefault(icn => icn.Name == "span")))
+                                    .Union(node.ChildNodes // отсутствовал
+                                        .Where(
+                                            icn =>
+                                                icn.Name == "i" &&
+                                                icn.Attributes.Any(a => a.Name == "class" && a.Value == "skip")))
+                                    .Where(gr => gr != null)
+                                    .Select(gr => new Mark
+                                        {
+                                            Number = gr.InnerText,
+                                            Title =
+                                                gr.Attributes.FirstOrDefault(a => a.Name == "title")?.Value ??
+                                                String.Empty,
+                                        })
+                            )
+
+                    })
+                    .Where(m => m.Marks.Any());
+                    
+
+
+                //var marks = tablenodes
+                //    .FindFirst("tbody").ChildNodes
+                //    .Where(node => node.Name == "tr")
+                //    .SelectMany(node => node.ChildNodes.Where(cn => cn.Name == "td"))
+                //    .SelectMany((node, index) =>
+                //    {
+                //        var cns = node.ChildNodes
+                //            .Where(icn => icn.Name == "span") // оценка
+                //            .Union(node.ChildNodes // присутствовал
+                //                    .Where(icn => icn.Name == "i")
+                //                    .Select(cn => cn.ChildNodes.FirstOrDefault(icn => icn.Name == "span")))
+                //            .Union(node.ChildNodes  // отсутствовал
+                //                    .Where(icn => icn.Name == "i" && icn.Attributes.Any(a => a.Name == "class" && a.Value == "skip")))
+                //            .Select(gr => gr == null
+                //                            ? null
+                //                            : new Grad
+                //                            {
+                //                                //Number = gr.InnerText,
+                //                                //Title = gr.Attributes.FirstOrDefault(a => a.Name == "title")?.Value ?? String.Empty,
+                //                                Date = dates[index % dates.Count],
+                //                                Subject = subjects[index / dates.Count].Name
+                //                            });
+                        
+                //        return cns;
+                //    })
+                //    .Where(n => n != null)
+                //    .ToList();
+
+            return new RequestResponse<IEnumerable<Grad>>
             {
                 Ok = true,
                 Result = marks

@@ -75,7 +75,7 @@ namespace YaR.SpbEdu
             return res;
         }
 
-        public async Task<List<Grad>> GradListAsync(long studentId)
+        public async Task<IEnumerable<Grad>> GradListAsync(long studentId)
         {
             var res = await new StudentGradRequest(this, studentId)
                 .MakeRequestAsync();

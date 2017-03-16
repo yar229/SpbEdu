@@ -85,9 +85,18 @@ namespace YaR.SpbEdu.Requests
     {
         public DateTime Date { get; set; }
         public string Subject { get; set; }
+        public IEnumerable<Mark> Marks { get; set; }
+
+    }
+
+    public struct Mark
+    {
         public string Number { get; set; }
         public string Title { get; set; }
     }
+
+
+
 
     public class Institution
     {

@@ -39,8 +39,13 @@ namespace BotConsole
             lock (FileLocker)
             {
                 string newname = Settings.Default.DataFilePathName + "." + DateTime.Now.ToString("yyyy-MM-dd_hh-mm-ss") + ".bak";
-                Logger.Info($"Backup data to: {newname}");
-                File.Move(Settings.Default.DataFilePathName, newname);
+                
+                if (File.Exists(Settings.Default.DataFilePathName))
+                {
+                    Logger.Info($"Backing up data to: {newname}");
+                    File.Move(Settings.Default.DataFilePathName, newname);
+                }
+                Logger.Info($"Saving data to: {newname}");
                 File.WriteAllText(Settings.Default.DataFilePathName, data);
             }
         }
@@ -90,30 +95,31 @@ namespace BotConsole
 
         public static IEnumerable<StudentAverageGrade> Avg(long chatid)
         {
-            var z = Datas.Values
-                .Where(d => d.ChatIds.Contains(chatid))
-                .SelectMany(d => d.Students)
-                .Select(s => new StudentAverageGrade
-                {
-                    Student = s,
-                    SubjectAverageGrades = s.Grads
-                        .GroupBy(g =>
-                                g.Subject,
-                                g =>
-                                {
-                                    int res;
-                                    int.TryParse(g.Number, out res);
-                                    return res;
-                                })
-                        .Select(z1 => new Grad
-                        {
-                            Subject = z1.Key,
-                            Number = z1.Where(n => n > 0).Average().ToString("F", CultureInfo.InvariantCulture),
-                            Date = DateTime.Now
-                        })
-                });
+            //var z = Datas.Values
+            //    .Where(d => d.ChatIds.Contains(chatid))
+            //    .SelectMany(d => d.Students)
+            //    .Select(s => new StudentAverageGrade
+            //    {
+            //        Student = s,
+            //        SubjectAverageGrades = s.Grads
+            //            .GroupBy(g =>
+            //                    g.Subject,
+            //                    g =>
+            //                    {
+            //                        int res;
+            //                        int.TryParse(g.Number, out res);
+            //                        return res;
+            //                    })
+            //            .Select(z1 => new Grad
+            //            {
+            //                Subject = z1.Key,
+            //                Number = z1.Where(n => n > 0).Average().ToString("F", CultureInfo.InvariantCulture),
+            //                Date = DateTime.Now
+            //            })
+            //    });
 
-            return z;
+            //return z;
+            return null;
         }
     
 
