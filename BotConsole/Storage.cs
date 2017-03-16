@@ -38,7 +38,7 @@ namespace BotConsole
 
             lock (FileLocker)
             {
-                string newname = Settings.Default.DataFilePathName + "." + DateTime.Now.ToString("yyyy-MM-dd_hh-mm-ss");
+                string newname = Settings.Default.DataFilePathName + "." + DateTime.Now.ToString("yyyy-MM-dd_hh-mm-ss") + ".bak";
                 Logger.Info($"Backup data to: {newname}");
                 File.Move(Settings.Default.DataFilePathName, newname);
                 File.WriteAllText(Settings.Default.DataFilePathName, data);
