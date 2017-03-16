@@ -1,4 +1,4 @@
-namespace YaR.SpbEdu
+namespace YaR.SpbEdu.Requests
 {
     public class RequestResponse<T>
     {

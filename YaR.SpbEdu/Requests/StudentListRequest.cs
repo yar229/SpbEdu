@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Text;
 using System.Text.RegularExpressions;
 
-namespace YaR.SpbEdu
+namespace YaR.SpbEdu.Requests
 {
     class StudentListRequest : BaseRequest<List<Student>>
     {

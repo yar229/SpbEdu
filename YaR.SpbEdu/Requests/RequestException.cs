@@ -1,7 +1,7 @@
 using System;
 using System.Net;
 
-namespace YaR.SpbEdu
+namespace YaR.SpbEdu.Requests
 {
     public class RequestException : Exception
     {

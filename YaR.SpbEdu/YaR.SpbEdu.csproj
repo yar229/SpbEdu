@@ -47,14 +47,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BaseRequest.cs" />
-    <Compile Include="LoginRequest.cs" />
+    <Compile Include="Requests\BaseRequest.cs" />
+    <Compile Include="Requests\InitRequest.cs" />
+    <Compile Include="Requests\LoginRequest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RequestException.cs" />
-    <Compile Include="RequestResponse.cs" />
+    <Compile Include="Requests\RequestException.cs" />
+    <Compile Include="Requests\RequestResponse.cs" />
     <Compile Include="SpbEduApi.cs" />
-    <Compile Include="StudentGradRequest.cs" />
-    <Compile Include="StudentListRequest.cs" />
+    <Compile Include="Requests\StudentGradRequest.cs" />
+    <Compile Include="Requests\StudentListRequest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -5,8 +5,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using YaR.SpbEdu.Requests;
 
-namespace YaR.SpbEdu
+namespace YaR.SpbEdu.Requests
 {
     public abstract class BaseRequest<T> where T : class
     {

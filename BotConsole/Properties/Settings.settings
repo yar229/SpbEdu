@@ -6,7 +6,7 @@
       <Value Profile="(Default)">data.json</Value>
     </Setting>
     <Setting Name="BotToken" Type="System.String" Scope="Application">
-      <Value Profile="(Default)" />
+      <Value Profile="(Default)">PASTE BOT TOKEN HERE</Value>
     </Setting>
   </Settings>
 </SettingsFile>

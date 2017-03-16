@@ -3,20 +3,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
-using System.Threading.Tasks;
 using System.Timers;
 using BotConsole.Properties;
 using Telegram.Bot.Args;
 using Telegram.Bot.Types.Enums;
-using YaR.SpbEdu;
 
 
 namespace BotConsole
 {
     class Program
     {
+        private static readonly log4net.ILog Logger = log4net.LogManager.GetLogger(typeof(Program));
+
         static void Main(string[] args)
         {
+            log4net.Config.XmlConfigurator.Configure();
+
             var bot = new Telegram.Bot.TelegramBotClient(Settings.Default.BotToken)
             {
                 WebProxy = WebRequest.DefaultWebProxy
@@ -30,9 +32,9 @@ namespace BotConsole
             var timer = new Timer(10 * 60 * 1000);
             ElapsedEventHandler fire = (sender, eventArgs) =>
             {
-                Console.Write($"{DateTime.Now} processing... ");
+                Logger.Info("Started processing");
                 Process(bot);
-                Console.WriteLine($" finished {DateTime.Now}");
+                Logger.Info("Finished processing");
             };
             fire(timer, null); // fire at start
             timer.Elapsed += fire;
@@ -62,12 +64,14 @@ namespace BotConsole
 
                 foreach (var data in Storage.Datas.Values)
                 {
+                    Logger.Info($"Processing User: {data.Login}");
                     var connector = ConnectorCache.GetConnector(data.Login, data.Password);
                     if (null == connector) continue;
 
                     var sts =  connector.StudentListAsync().Result;
                     foreach (var st in sts)
                     {
+                        Logger.Info($"Quering Student ID: {st.UID}");
                         var grads = connector.GradListAsync(st.UID).Result;
                         //grads.Add(new Grad { Date = DateTime.Now, Subject = "Английский язык", Number = "10", Title = "zРабота на уроке" });
                         st.Grads = grads;
@@ -77,7 +81,8 @@ namespace BotConsole
                     {
                         foreach (var st in sts)
                         {
-                            bool doSend = false;
+                            Logger.Info($"Processing Student ID: {st.UID}");
+                            int cntNewMarks = 0;
                             var msg = new StringBuilder();
                             msg.Append($"\r\n 👤{st.LastName} {st.FirstName} {st.SecondName}");
 
@@ -92,14 +97,15 @@ namespace BotConsole
 
                                 if (!markExists)
                                 {
-                                    doSend = true;
+                                    cntNewMarks++;
                                     msg.Append($"\r\n {grad.Date:dd MMM yyyy}, {grad.Subject} • <b>{grad.Number}</b> •");
                                     if (!string.IsNullOrWhiteSpace(grad.Title))
                                         msg.Append($" {grad.Title}");
                                 }
                             }
+                            Logger.Info($"New grades found: {cntNewMarks}");
 
-                            if (doSend)
+                            if (cntNewMarks > 0)
                             {
                                 var splitted = ChunksUpto(msg.ToString(), 4000).ToList();
                                 foreach (var chatid in data.ChatIds)
@@ -115,7 +121,7 @@ namespace BotConsole
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Logger.Error("Process!", e);
             }
         }
 
@@ -138,6 +144,7 @@ namespace BotConsole
                 var splitted = text.Split(' ');
                 if (3 == splitted.Length && "/register" == splitted[0])
                 {
+                    Logger.Info($"Registering new user {splitted[1]} from chatid={chatid}");
                     string login = splitted[1];
                     string password = splitted[2];
 
@@ -147,6 +154,7 @@ namespace BotConsole
 
                 if (1 == splitted.Length && "/avg" == splitted[0])
                 {
+                    Logger.Info($"Processing /avg from chatid={chatid}");
                     var z = Storage.Avg(chatid);
                     foreach (var avgGrade in z)
                     {
@@ -163,7 +171,7 @@ namespace BotConsole
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Logger.Error("OnBotMessage!", e);
             }
 
         }

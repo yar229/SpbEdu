@@ -1,20 +1,17 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 using BotConsole.Properties;
 using Newtonsoft.Json;
-using YaR.SpbEdu;
+using YaR.SpbEdu.Requests;
 
 namespace BotConsole
 {
     public static class Storage
     {
+        private static readonly log4net.ILog Logger = log4net.LogManager.GetLogger(typeof(Storage));
         private static readonly object FileLocker = new object();
 
         static Storage()
@@ -41,8 +38,9 @@ namespace BotConsole
 
             lock (FileLocker)
             {
-                File.Move(Settings.Default.DataFilePathName,
-                    Settings.Default.DataFilePathName + "." + DateTime.Now.ToString("yyyy-MM-dd_hh-mm-ss"));
+                string newname = Settings.Default.DataFilePathName + "." + DateTime.Now.ToString("yyyy-MM-dd_hh-mm-ss");
+                Logger.Info($"Backup data to: {newname}");
+                File.Move(Settings.Default.DataFilePathName, newname);
                 File.WriteAllText(Settings.Default.DataFilePathName, data);
             }
         }

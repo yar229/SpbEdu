@@ -34,7 +34,7 @@ namespace BotConsole.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        [global::System.Configuration.DefaultSettingValueAttribute("PASTE BOT TOKEN HERE")]
         public string BotToken {
             get {
                 return ((string)(this["BotToken"]));
