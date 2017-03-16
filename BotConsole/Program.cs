@@ -73,41 +73,43 @@ namespace BotConsole
                         st.Grads = grads;
                     }
 
-
-                    foreach (var st in sts)
+                    if (sts.Count > 0)
                     {
-                        bool doSend = false;
-                        var msg = new StringBuilder();
-                        msg.Append($"\r\n 👤{st.LastName} {st.FirstName} {st.SecondName}");
-
-                        foreach (var grad in st.Grads)
+                        foreach (var st in sts)
                         {
-                            var markExists = data.Students?
-                                                 .FirstOrDefault(s => s.UID == st.UID)?
-                                                 .Grads?
-                                                 .Any(gr =>
-                                                     gr.Date == grad.Date && gr.Number == grad.Number &&
-                                                     gr.Subject == grad.Subject && gr.Title == grad.Title) ?? false;
+                            bool doSend = false;
+                            var msg = new StringBuilder();
+                            msg.Append($"\r\n 👤{st.LastName} {st.FirstName} {st.SecondName}");
 
-                            if (!markExists)
+                            foreach (var grad in st.Grads)
                             {
-                                doSend = true;
-                                msg.Append($"\r\n {grad.Date:dd MMM yyyy}, {grad.Subject} • <b>{grad.Number}</b> •");
-                                if (!string.IsNullOrWhiteSpace(grad.Title))
-                                    msg.Append($" {grad.Title}");
+                                var markExists = data.Students?
+                                                     .FirstOrDefault(s => s.UID == st.UID)?
+                                                     .Grads?
+                                                     .Any(gr =>
+                                                         gr.Date == grad.Date && gr.Number == grad.Number &&
+                                                         gr.Subject == grad.Subject && gr.Title == grad.Title) ?? false;
+
+                                if (!markExists)
+                                {
+                                    doSend = true;
+                                    msg.Append($"\r\n {grad.Date:dd MMM yyyy}, {grad.Subject} • <b>{grad.Number}</b> •");
+                                    if (!string.IsNullOrWhiteSpace(grad.Title))
+                                        msg.Append($" {grad.Title}");
+                                }
+                            }
+
+                            if (doSend)
+                            {
+                                var splitted = ChunksUpto(msg.ToString(), 4000).ToList();
+                                foreach (var chatid in data.ChatIds)
+                                foreach (var chunk in splitted)
+                                    await bot.SendTextMessageAsync(chatid, chunk, parseMode: ParseMode.Html);
                             }
                         }
 
-                        if (doSend)
-                        {
-                            var splitted = ChunksUpto(msg.ToString(), 4000).ToList();
-                            foreach (var chatid in data.ChatIds)
-                                foreach (var chunk in splitted)
-                                    await bot.SendTextMessageAsync(chatid, chunk, parseMode: ParseMode.Html);
-                        }
+                        data.Students = sts;
                     }
-
-                    data.Students = sts;
                 }
                 Storage.Save();
             }
@@ -143,10 +145,20 @@ namespace BotConsole
                     bot.SendTextMessageAsync(chatid, (registered ? "" : "Not ") +  "Registered");
                 }
 
-                //if (1 == splitted.Length && "/avg" == splitted[0])
-                //{
-                //    var z = Storage.Avg(chatid);
-                //}
+                if (1 == splitted.Length && "/avg" == splitted[0])
+                {
+                    var z = Storage.Avg(chatid);
+                    foreach (var avgGrade in z)
+                    {
+                        StringBuilder msg = new StringBuilder();
+                        msg.Append($"\r\n 👤{avgGrade.Student.LastName} {avgGrade.Student.FirstName} {avgGrade.Student.SecondName}");
+                        foreach (var grad in avgGrade.SubjectAverageGrades)
+                        {
+                            msg.Append($"\r\n {grad.Subject} • <b>{grad.Number}</b> •");
+                        }
+                        bot.SendTextMessageAsync(chatid, msg.ToString(), parseMode: ParseMode.Html);
+                    }
+                }
 
             }
             catch (Exception e)

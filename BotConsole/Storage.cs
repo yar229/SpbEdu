@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -14,16 +15,21 @@ namespace BotConsole
 {
     public static class Storage
     {
+        private static readonly object FileLocker = new object();
+
         static Storage()
         {
             string data = "";
-            try
+            lock (FileLocker)
             {
-                data = File.ReadAllText(Settings.Default.DataFilePathName);
-            }
-            catch (Exception)
-            {
-                //ignore
+                try
+                {
+                    data = File.ReadAllText(Settings.Default.DataFilePathName);
+                }
+                catch (Exception)
+                {
+                    //ignore
+                }
             }
             if (!string.IsNullOrEmpty(data))
                 Datas = JsonConvert.DeserializeObject<Dictionary<string, Data>>(data);
@@ -32,7 +38,13 @@ namespace BotConsole
         public static void Save()
         {
             string data = JsonConvert.SerializeObject(Datas);
-            File.WriteAllText(Settings.Default.DataFilePathName, data);
+
+            lock (FileLocker)
+            {
+                File.Move(Settings.Default.DataFilePathName,
+                    Settings.Default.DataFilePathName + "." + DateTime.Now.ToString("yyyy-MM-dd_hh-mm-ss"));
+                File.WriteAllText(Settings.Default.DataFilePathName, data);
+            }
         }
 
 
@@ -78,45 +90,43 @@ namespace BotConsole
             }
         }
 
-        //    public static object Avg(long chatid)
-        //    {
-        //        var z = Datas.Values
-        //            .Where(d => d.ChatIds.Contains(chatid))
-        //            .SelectMany(d => d.Students)
+        public static IEnumerable<StudentAverageGrade> Avg(long chatid)
+        {
+            var z = Datas.Values
+                .Where(d => d.ChatIds.Contains(chatid))
+                .SelectMany(d => d.Students)
+                .Select(s => new StudentAverageGrade
+                {
+                    Student = s,
+                    SubjectAverageGrades = s.Grads
+                        .GroupBy(g =>
+                                g.Subject,
+                                g =>
+                                {
+                                    int res;
+                                    int.TryParse(g.Number, out res);
+                                    return res;
+                                })
+                        .Select(z1 => new Grad
+                        {
+                            Subject = z1.Key,
+                            Number = z1.Where(n => n > 0).Average().ToString("F", CultureInfo.InvariantCulture),
+                            Date = DateTime.Now
+                        })
+                });
 
-        //            .Select(s => new
-        //            {
-        //                s.LastName,
-        //                s.FirstName,
-        //                s.SecondName,
-        //                AvrGrades = s.Grads
-        //                    .GroupBy(g => g.Subject, g =>
-        //                    {
+            return z;
+        }
+    
 
-        //                        int res;
-        //                        int.TryParse(g.Number, out res);
-        //                        return res;
-        //                    })
-        //                    .Select(d => new AvgGrade
-        //                    {
-        //                        Name = s.LastName,
-        //                        Subject = d.Key,
-        //                        Grade = d.Where(num => num > 0).Average()
-        //                    })
-        //            });
+    public class StudentAverageGrade
+    {
+        public Student Student { get; set; }
+        public IEnumerable<Grad> SubjectAverageGrades { get; set; }
 
-        //        return null;
-        //    }
-        //}
+    }
 
-        //public class AvgGrade
-        //{
-        //    public string Name { get; set; }
-        //    public string Subject { get; set; }
-        //    public double Grade { get; set; }
-        //}
-
-        public class Data
+    public class Data
         {
             public string Login { get; set; }
             public string Password { get; set; }
