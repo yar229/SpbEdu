@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using BotConsole.Properties;
 using Newtonsoft.Json;
@@ -39,11 +40,22 @@ namespace BotConsole
             lock (FileLocker)
             {
                 string newname = Settings.Default.DataFilePathName + "." + DateTime.Now.ToString("yyyy-MM-dd_hh-mm-ss") + ".bak";
-                
+                string zipname = Settings.Default.DataFilePathName + ".zip";
+
+
                 if (File.Exists(Settings.Default.DataFilePathName))
                 {
                     Logger.Info($"Backing up data to: {newname}");
+
                     File.Move(Settings.Default.DataFilePathName, newname);
+
+                    ZipArchiveMode fm = File.Exists(newname) ? ZipArchiveMode.Update : ZipArchiveMode.Create;
+                    using (ZipArchive archive = ZipFile.Open(zipname, fm))
+                    {
+                        archive.CreateEntryFromFile(newname, Path.GetFileName(newname));
+                    }
+
+                    File.Delete(newname);
                 }
                 Logger.Info($"Saving data to: {newname}");
                 File.WriteAllText(Settings.Default.DataFilePathName, data);
