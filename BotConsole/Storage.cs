@@ -57,7 +57,7 @@ namespace BotConsole
 
                     File.Delete(newname);
                 }
-                Logger.Info($"Saving data to: {newname}");
+                Logger.Info($"Saving data to: {Settings.Default.DataFilePathName}");
                 File.WriteAllText(Settings.Default.DataFilePathName, data);
             }
         }
