@@ -1,5 +1,5 @@
 # SpbEdu Telegram Bot
-<a href="https://github.com/yar229/SpbEdu/releases/latest"><img src="https://mybadges.herokuapp.com/github/filewlogo/windows-logo-silhouette/%20%20%20%20%20%20%20%20Скачать SpbEduTelegramBot__version_.zip%20%20%20%20%20%20%20%20/yar229/SpbEdu.svg?colorA=abcdef&colorB=cccdce&style=social"  align="right"></a>
+<a href="https://github.com/yar229/SpbEdu/releases/latest"><img src="https://mybadges.herokuapp.com/github/filewlogo/windows-logo-silhouette/%20%20%20%20%20%20%20%20Скачать%20SpbEduTelegramBot__version_.zip%20%20%20%20%20%20%20%20/yar229/SpbEdu.svg?colorA=abcdef&colorB=cccdce&style=social"  align="right"></a>
 Telegram бот для школьного дневника на портале [Петербургское образование](https://petersburgedu.ru/)
 
 Оповещает об изменениях оценок учеников.
